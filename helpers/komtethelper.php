@@ -42,7 +42,7 @@ class komtetHelper
 
 		$payment = Payment::createCard(floatval($positions[0]->order_total));
 
-		$parsed_sno = null
+		$parsed_sno = null;
 		switch ($params['sno']) {
 		    case 'osn':
 		        $parsed_sno = 0;
@@ -63,7 +63,7 @@ class komtetHelper
 		        $parsed_sno = 5;
 		        break;
 	        default:
-	        	$parsed_sno = $params['sno']
+	        	$parsed_sno = $params['sno'];
 		}
 
 		$check = new Check($order->order_id, $order->email, Check::INTENT_SELL, intval($parsed_sno));
