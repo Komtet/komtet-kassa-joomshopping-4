@@ -40,7 +40,7 @@ class komtetHelper
 		$db->setQuery($query);
 		$positions = $db->loadObjectList();
 
-		$payment = Payment::createCard(floatval($positions[0]->order_total));
+		$payment = new Payment(Payment::TYPE_CARD, floatval($positions[0]->order_total));
 
 		$parsed_sno = null;
 		switch ($params['sno']) {
@@ -77,34 +77,37 @@ class komtetHelper
 
 		foreach( $positions as $position )
 		{
-			//$total += $position->product_item_price;
-
 			$positionObj = new Position($position->product_name,
 										floatval($position->product_item_price),
 										floatval($position->product_quantity),
-										$position->product_quantity*$position->product_item_price,
-										floatval($position->order_discount),
+										floatval($position->product_quantity*$position->product_item_price),
+										0,
 										$vat);
 
 			$check->addPosition($positionObj);
 		}
 
-		$shippingPosition = new Position("Доставка",
-										 floatval($position->order_shipping),
-										 1,
-										 floatval($position->order_shipping),
-										 0,
-										 $vat);
-		$check->addPosition($shippingPosition);
+		$check->applyDiscount(round($positions[0]->order_discount, 2), Check::DISCOUNT_TYPE_VALUE);
 
+		if (floatval($positions[0]->order_shipping) > 0.0) {
+			$shippingPosition = new Position("Доставка",
+											 floatval($position->order_shipping),
+											 1,
+											 floatval($position->order_shipping),
+											 0,
+											 $vat);
+			$check->addPosition($shippingPosition);
+		}
 
-		$packagePosition = new Position("Упаковка",
-										 floatval($position->order_package),
-										 1,
-										 floatval($position->order_package),
-										 0,
-										 $vat);
-		$check->addPosition($packagePosition);
+		if (floatval($positions[0]->order_package) > 0.0) {
+			$packagePosition = new Position("Упаковка",
+											 floatval($position->order_package),
+											 1,
+											 floatval($position->order_package),
+											 0,
+											 $vat);
+			$check->addPosition($packagePosition);
+		}
 
 		$client = new Client($params['shop_id'], $params['secret']);
 		$queueManager = new QueueManager($client);
