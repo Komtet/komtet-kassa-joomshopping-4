@@ -16,9 +16,6 @@ class Check
     const INTENT_BUY = 'buy';
     const INTENT_BUY_RETURN = 'buyReturn';
 
-    const DISCOUNT_TYPE_PERCENT = 'percent';
-    const DISCOUNT_TYPE_VALUE = 'value';
-
     /**
      * @var string
      */
@@ -172,36 +169,55 @@ class Check
     }
 
     /**
-     * @param float  $discount
-     * @param string $discountType
+     * @return int|float
+     */
+    public function getTotalPositionsSum()
+    {
+        $positionsTotal = 0;
+        foreach( $this->positions as $position )
+        {
+            $positionsTotal += $position->getTotal();
+        }
+
+        return $positionsTotal;
+    }
+
+    /**
+     * @return array
+     */
+    public function getPositions()
+    {
+        return $this->positions;
+    }
+
+    /**
+     *
+     * Применение к позициям единой общей скидки на чек (например скидочного купона)
+     *
+     * @param float $checkDiscount
      *
      * @return Check
      */
-    public function applyDiscount(float $discount, string $discountType)
+    public function applyDiscount($checkDiscount)
     {
-        if ($discountType == static::DISCOUNT_TYPE_VALUE) {
-            $orderDiscountPercent = floatval($discount) / $this->positions[0]->order_total * 100;
-        }
-        else {
-            $orderDiscountPercent = $discount;
-        }
+        $positionsTotal = $this->getTotalPositionsSum();
+        $checkPositions = $this->getPositions();
 
-        $positionsCount = count($positions);
-        $positionsDiscount = 0;
+        $positionsCount = count($checkPositions);
+        $accumulatedDiscount = 0;
 
-        foreach( $positions as $index => $position )
+        foreach( $checkPositions as $index => $position )
         {
-
             if ($index < $positionsCount-1) {
-                $curPositionDiscount = round($position->price - ($position->price*$orderDiscountPercent/100), 2);
-                $positionsDiscount += $curPositionDiscount;
+                $positionPricePercent = $position->getTotal() / $positionsTotal * 100;
+                $curPositionDiscount = round($checkDiscount * $positionPricePercent / 100, 2);
+                $accumulatedDiscount += $curPositionDiscount;
+            }
+            else {
+                $curPositionDiscount = round($checkDiscount - $accumulatedDiscount, 2);
             }
 
-            if ($index == $positionsCount-1) {
-                $curPositionDiscount = round($position->order_discount - $positionsDiscount, 2);
-            }
-
-            $position->total -= $curPositionDiscount;
+            $position->setTotal($position->getTotal() - $curPositionDiscount);
         }
 
         return $this;

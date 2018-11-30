@@ -87,7 +87,7 @@ class komtetHelper
 			$check->addPosition($positionObj);
 		}
 
-		$check->applyDiscount(round($positions[0]->order_discount, 2), Check::DISCOUNT_TYPE_VALUE);
+		$check->applyDiscount($positions[0]->order_discount);
 
 		if (floatval($positions[0]->order_shipping) > 0.0) {
 			$shippingPosition = new Position("Доставка",
