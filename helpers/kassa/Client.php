@@ -91,6 +91,10 @@ class Client
      */
     public function sendRequest($path, $data = null)
     {
+
+        $component_path = JPATH_PLUGINS.'/jshoppingcheckout/komtetkassa';
+        include_once $component_path.'/helpers/kassa/Exception/ClientException.php';
+
         if ($data === null) {
             $method = 'GET';
         } elseif (is_array($data)) {
