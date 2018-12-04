@@ -150,7 +150,10 @@ class Client
                 'error' => $error,
                 'response' => $response
             ]);
-            throw new ClientException($error);
+
+            if (JDEBUG) {
+                throw new ClientException($response);
+            }
         }
 
         $this->log(LogLevel::DEBUG, 'response: {response}', ['response' => $response]);

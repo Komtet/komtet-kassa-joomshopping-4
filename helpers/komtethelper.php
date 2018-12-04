@@ -114,13 +114,10 @@ class komtetHelper
 
         $queueManager->registerQueue('print_que', $params['queue_id']);
 
-        if($queueManager->isQueueActive('print_que'))
-        {
-            try {
-                $queueManager->putCheck($check, 'print_que');
-            } catch (SdkException $e) {
-                echo $e->getMessage();
-            }
+        try {
+            $queueManager->putCheck($check, 'print_que');
+        } catch (SdkException $e) {
+            echo $e->getMessage();
         }
     }
 }
