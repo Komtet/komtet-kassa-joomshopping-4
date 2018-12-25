@@ -1,8 +1,8 @@
 <?php
 
-JLoader::register('komtetHelper', JPATH_PLUGINS.'/jshoppingcheckout/komtetkassa/helpers/komtethelper.php');
+JLoader::register('komtetHelper', JPATH_PLUGINS.'/system/komtetkassa/helpers/komtethelper.php');
 
-class plgJshoppingcheckoutKomtetkassa extends JPlugin
+class plgSystemKomtetkassa extends JPlugin
 {
 
     protected $autoloadLanguage = true;
@@ -30,9 +30,9 @@ class plgJshoppingcheckoutKomtetkassa extends JPlugin
         parent::__construct($subject, $config);
     }
 
-    public function fiscalize($order, $params)
+    public function fiscalize($order, $params, $eventName)
     {
-        komtetHelper::fiscalize($order, $params);
+        komtetHelper::fiscalize($order, $params, $eventName);
         return;
     }
 
@@ -40,7 +40,7 @@ class plgJshoppingcheckoutKomtetkassa extends JPlugin
     {
         if($this->isShouldFiscalize($order->payment_method_id))
         {
-            $this->fiscalize($order, $this->params);
+            $this->fiscalize($order, $this->params, 'onAfterDisplayCheckoutFinish');
         }
         return true;
     }
@@ -49,7 +49,7 @@ class plgJshoppingcheckoutKomtetkassa extends JPlugin
     {
         if ( !in_array($order->order_status, array(0,3,4)) && $this->isShouldFiscalize($order->payment_method_id))
         {
-            $this->fiscalize($order, $this->params);
+            $this->fiscalize($order, $this->params, 'onKomtetKassaFiscalize');
         }
         return true;
     }
@@ -58,7 +58,24 @@ class plgJshoppingcheckoutKomtetkassa extends JPlugin
     {
         if ( !in_array($order->order_status, array(0,3,4)) && $this->isShouldFiscalize($order->payment_method_id))
         {
-            $this->fiscalize($order, $this->params);
+            $this->fiscalize($order, $this->params, 'onStep7BefereNotify');
+        }
+        return true;
+    }
+
+    public function onAfterChangeOrderStatusAdmin(&$order, &$order_status, &$status_id, &$notify, &$comments, &$include, &$view_order)
+    {       
+        $db = JFactory::getDbo();
+        $query = $db->getQuery(true);
+        $query->select('*');
+        $query->from($db->quoteName('#__jshopping_orders', 'order'));
+        $query->where($db->quoteName('order.order_id')." = ".$db->quote($order));
+        $db->setQuery($query);
+        $_order = $db->loadObject();
+
+        if ( !in_array($order_status, array(0,1,3,4)) && $this->isShouldFiscalize($_order->payment_method_id))
+        {
+            $this->fiscalize($_order, $this->params, 'onAfterChangeOrderStatusAdmin');
         }
         return true;
     }

@@ -87,7 +87,7 @@ class QueueManager
      *
      * @return mixed
      */
-    public function putCheck($check, $queueName = null)
+    public function putCheck($check, $queueName = null, $orderFiscStatusId)
     {
         if ($queueName === null) {
             if ($this->defaultQueue === null) {
@@ -101,7 +101,7 @@ class QueueManager
         }
 
         $path = sprintf('api/shop/v1/queues/%s/task', $this->queues[$queueName]);
-        return $this->client->sendRequest($path, $check->asArray());
+        return $this->client->sendRequest($path, $check->asArray(), $orderFiscStatusId);
     }
 
     /**

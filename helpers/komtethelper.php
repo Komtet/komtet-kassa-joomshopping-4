@@ -12,10 +12,10 @@ use Komtet\KassaSdk\Payment;
 
 class komtetHelper
 {
-    public function fiscalize($order, $params)
+    public function fiscalize($order, $params, $eventName)
     {
 
-        $component_path = JPATH_PLUGINS.'/jshoppingcheckout/komtetkassa';
+        $component_path = JPATH_PLUGINS.'/system/komtetkassa';
 
         include_once $component_path.'/helpers/kassa/QueueManager.php';
         include_once $component_path.'/helpers/kassa/Position.php';
@@ -27,10 +27,37 @@ class komtetHelper
 
         $db = JFactory::getDbo();
 
+        $query = $db->getQuery(true);
+        $query->select('*');
+        $query->from($db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
+        $query->where($db->quoteName('status.order_id')." = ".$db->quote($order->order_id));
+        $query->where($db->quoteName('status.order_number')." = ".$db->quote($order->order_number));
+        $db->setQuery($query);
+        $before_inserted = $db->loadObjectList();
+
+        foreach( $before_inserted as $bi ) {
+            if ($bi->status == 'done') {
+                return;
+            }
+        }
+
+        $timeNow = date(DATE_ATOM, time());
         $order_fics_status = new stdClass();
         $order_fics_status->order_id = $order->order_id;
+        $order_fics_status->order_number = $order->order_number;
         $order_fics_status->status='pending';
-        $result = $db->insertObject('#__jshopping_order_fiscalization_status', $order_fics_status);
+        $order_fics_status->event=$eventName;
+        $order_fics_status->datetime=$timeNow;
+        $db->insertObject('#__jshopping_order_fiscalization_status', $order_fics_status);
+        
+        $query = $db->getQuery(true);
+        $query->select('*');
+        $query->from($db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
+        $query->where($db->quoteName('status.order_id')." = ".$db->quote($order->order_id));
+        $query->where($db->quoteName('status.event')." = ".$db->quote($eventName));
+        $query->where($db->quoteName('status.datetime')." = ".$db->quote($timeNow));
+        $db->setQuery($query);
+        $now_inserted = $db->loadObject();
 
         $query = $db->getQuery(true);
         $query->select('*');
@@ -115,9 +142,26 @@ class komtetHelper
         $queueManager->registerQueue('print_que', $params['queue_id']);
 
         try {
-            $queueManager->putCheck($check, 'print_que');
+            $queueManager->putCheck($check, 'print_que', $now_inserted->id);
         } catch (SdkException $e) {
-            echo $e->getMessage();
+            $fiscErr = $e->getMessage();
+            echo $fiscErr;
         }
+
+        $query = $db->getQuery(true);
+        $query->select('*');
+        $query->from($db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
+        $query->where($db->quoteName('status.id')." = ".$db->quote($now_inserted->id));
+        $db->setQuery($query);
+        $now_inserted = $db->loadObject();
+
+        if($now_inserted->status != 'error') {
+            $order_fics_status = new stdClass();
+            $order_fics_status->id = $now_inserted->id;
+            $order_fics_status->status='done';
+            $order_fics_status->datetime=date(DATE_ATOM, time());
+            $result = $db->updateObject('#__jshopping_order_fiscalization_status', $order_fics_status, 'id');
+        }
+
     }
 }

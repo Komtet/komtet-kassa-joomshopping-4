@@ -13,6 +13,7 @@ use Komtet\KassaSdk\Exception\ClientException;
 use Psr\Log\LogLevel;
 use Psr\Log\LoggerInterface;
 
+
 class Client
 {
     /**
@@ -89,10 +90,10 @@ class Client
      *
      * @return mixed
      */
-    public function sendRequest($path, $data = null)
+    public function sendRequest($path, $data = null, $orderFiscStatusId)
     {
 
-        $component_path = JPATH_PLUGINS.'/jshoppingcheckout/komtetkassa';
+        $component_path = JPATH_PLUGINS.'/system/komtetkassa';
         include_once $component_path.'/helpers/kassa/Exception/ClientException.php';
 
         if ($data === null) {
@@ -150,6 +151,15 @@ class Client
                 'error' => $error,
                 'response' => $response
             ]);
+
+            $db = \joomla\CMS\factory::getDbo();
+            $order_fics_status = new \stdClass();
+            $order_fics_status->id = $orderFiscStatusId;
+            $order_fics_status->status='error';
+            $order_fics_status->description=$response;
+            $order_fics_status->datetime=date(DATE_ATOM, time());
+            $result = $db->updateObject('#__jshopping_order_fiscalization_status', $order_fics_status, 'id');
+            define("KOMTET_KASSA_ERROR", TRUE);
 
             if (JDEBUG) {
                 throw new ClientException($response);
