@@ -47,7 +47,7 @@ class plgSystemKomtetkassa extends JPlugin
 
     public function onKomtetKassaFiscalize(&$order)
     {
-        if ( !in_array($order->order_status, array(0,3,4)) && $this->isShouldFiscalize($order->payment_method_id))
+        if ( in_array($order->order_status, array(6,7)) && $this->isShouldFiscalize($order->payment_method_id))
         {
             $this->fiscalize($order, $this->params, 'onKomtetKassaFiscalize');
         }
@@ -56,7 +56,7 @@ class plgSystemKomtetkassa extends JPlugin
 
     public function onStep7BefereNotify(&$order, &$jshopCheckoutBuy, &$pmconfigs)
     {
-        if ( !in_array($order->order_status, array(0,3,4)) && $this->isShouldFiscalize($order->payment_method_id))
+        if (in_array($order->order_status, array(6,7)) && $this->isShouldFiscalize($order->payment_method_id))
         {
             $this->fiscalize($order, $this->params, 'onStep7BefereNotify');
         }
@@ -73,7 +73,7 @@ class plgSystemKomtetkassa extends JPlugin
         $db->setQuery($query);
         $_order = $db->loadObject();
 
-        if ( !in_array($order_status, array(0,1,3,4)) && $this->isShouldFiscalize($_order->payment_method_id))
+        if (in_array($order->order_status, array(6,7)) && $this->isShouldFiscalize($_order->payment_method_id))
         {
             $this->fiscalize($_order, $this->params, 'onAfterChangeOrderStatusAdmin');
         }

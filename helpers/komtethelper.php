@@ -14,6 +14,9 @@ class komtetHelper
 {
     public function fiscalize($order, $params, $eventName)
     {
+        $session = JFactory::getSession();
+        if ($session->get('komtet_fisc_started', False)) return;
+        $session->set( 'komtet_fisc_started', True);
 
         $component_path = JPATH_PLUGINS.'/system/komtetkassa';
 
@@ -37,6 +40,7 @@ class komtetHelper
 
         foreach( $before_inserted as $bi ) {
             if ($bi->status == 'done') {
+                $session->set( 'komtet_fisc_started', False);
                 return;
             }
         }
@@ -49,7 +53,9 @@ class komtetHelper
         $order_fics_status->event=$eventName;
         $order_fics_status->datetime=$timeNow;
         $db->insertObject('#__jshopping_order_fiscalization_status', $order_fics_status);
-        
+
+        $session->set( 'komtet_fisc_started', False);
+
         $query = $db->getQuery(true);
         $query->select('*');
         $query->from($db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
@@ -162,6 +168,5 @@ class komtetHelper
             $order_fics_status->datetime=date(DATE_ATOM, time());
             $result = $db->updateObject('#__jshopping_order_fiscalization_status', $order_fics_status, 'id');
         }
-
     }
 }
