@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:5.7
+    container_name: joomshopping4_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: my_secret_pw_shh
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: devuser
+      MYSQL_PASSWORD: devpass
+    volumes:
+      - /srv/docker_volumes/mysql_data/komtet_kassa_joomla3:/var/lib/mysql
+    ports:
+      - "9906:3306"
+  web:
+    image: ss_web:last
+    build: ./
+    container_name: joomshopping4_php_web
+    depends_on:
+      - db
+    volumes:
+      - ./php/:/var/www/html/
+    ports:
+      - "8100:80"
+    links:
+      - db:mysql
+    stdin_open: true
+    tty: true

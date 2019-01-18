@@ -159,7 +159,13 @@ class Client
             $order_fics_status->description=$response;
             $order_fics_status->datetime=date(DATE_ATOM, time());
             $result = $db->updateObject('#__jshopping_order_fiscalization_status', $order_fics_status, 'id');
-            define("KOMTET_KASSA_ERROR", TRUE);
+
+            $session = \joomla\CMS\factory::getSession();
+            $komtet_fisc_now_orders = $session->get('komtet_fisc_now_orders', array());
+            if (($key = array_search($order->id, $komtet_fisc_now_orders)) !== false) {
+                unset($komtet_fisc_now_orders[$key]);
+                $session->set( 'komtet_fisc_now_orders', $komtet_fisc_now_orders);
+            }
 
             if (JDEBUG) {
                 throw new ClientException($response);

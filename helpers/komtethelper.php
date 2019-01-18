@@ -12,11 +12,87 @@ use Komtet\KassaSdk\Payment;
 
 class komtetHelper
 {
+
+    private $db;
+    private $query;
+
+
+    function __construct() {
+        $this->db = JFactory::getDbo();
+    }
+
+    public function is_order_already_fiscalized($order_id, $order_number){
+        $this->query = $this->db->getQuery(true);
+        $this->query->select('*');
+        $this->query->from($this->db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
+        $this->query->where($this->db->quoteName('status.order_id')." = ".$this->db->quote($order_id));
+        $this->query->where($this->db->quoteName('status.order_number')." = ".$this->db->quote($order_number));
+        $this->db->setQuery($this->query);
+        $before_inserted = $this->db->loadObjectList();
+
+        foreach( $before_inserted as $bi ) {
+            if ($bi->status == 'done') {
+                return True;
+            }
+        }
+        return False;
+    }
+
+    public function get_inserted_order_fisc_status($order, $eventName, $timeNow) {
+        $this->query = $this->db->getQuery(true);
+        $this->query->select('*');
+        $this->query->from($this->db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
+        $this->query->where($this->db->quoteName('status.order_id')." = ".$this->db->quote($order->order_id));
+        $this->query->where($this->db->quoteName('status.event')." = ".$this->db->quote($eventName));
+        $this->query->where($this->db->quoteName('status.datetime')." = ".$this->db->quote($timeNow));
+        $this->db->setQuery($this->query);
+        $now_inserted = $this->db->loadObject();
+        return $now_inserted;
+    }
+
+    public function save_order_fisc_status($order, $eventName, $timeNow) {
+        $order_fics_status = new stdClass();
+        $order_fics_status->order_id = $order->order_id;
+        $order_fics_status->order_number = $order->order_number;
+        $order_fics_status->status='pending';
+        $order_fics_status->event=$eventName;
+        $order_fics_status->datetime=$timeNow;
+        $this->db->insertObject('#__jshopping_order_fiscalization_status', $order_fics_status);
+
+        return $this->get_inserted_order_fisc_status($order, $eventName, $timeNow);
+    }
+
+    public function update_order_fisc_status($order) {
+        $order_fics_status = new stdClass();
+        $order_fics_status->id = $order->id;
+        $order_fics_status->status='done';
+        $order_fics_status->datetime=date(DATE_ATOM, time());
+        $db = JFactory::getDbo();
+        $result = $this->db->updateObject('#__jshopping_order_fiscalization_status', $order_fics_status, 'id');
+    }
+
+    public function get_order_positions($order){
+        $this->query = $this->db->getQuery(true);
+        $this->query->select('*');
+        $this->query->from($this->db->quoteName('#__jshopping_order_item', 'position'));
+        $this->query->join('INNER', $this->db->quoteName('#__jshopping_orders', 'order') . ' ON (' . $this->db->quoteName('order.order_id') . ' = ' . $this->db->quoteName('position.order_id') . ')');
+        $this->query->where($this->db->quoteName('position.order_id')." = ".$this->db->quote($order->order_id));
+        $this->db->setQuery($this->query);
+        $positions = $this->db->loadObjectList();
+        return $positions;
+    }
+
     public function fiscalize($order, $params, $eventName)
     {
+
         $session = JFactory::getSession();
-        if ($session->get('komtet_fisc_started', False)) return;
-        $session->set( 'komtet_fisc_started', True);
+
+        $komtet_fisc_now_orders = $session->get('komtet_fisc_now_orders', array());
+
+        if (in_array($order->id, $komtet_fisc_now_orders)) return;
+
+        $komtet_fisc_now_orders[] = $order->id;
+        $session->set( 'komtet_fisc_now_orders', $komtet_fisc_now_orders);
 
         $component_path = JPATH_PLUGINS.'/system/komtetkassa';
 
@@ -28,50 +104,20 @@ class komtetHelper
         include_once $component_path.'/helpers/kassa/Payment.php';
         include_once $component_path.'/helpers/kassa/Exception/SdkException.php';
 
-        $db = JFactory::getDbo();
+        if ($this->is_order_already_fiscalized($order->order_id, $order->order_number)) {
 
-        $query = $db->getQuery(true);
-        $query->select('*');
-        $query->from($db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
-        $query->where($db->quoteName('status.order_id')." = ".$db->quote($order->order_id));
-        $query->where($db->quoteName('status.order_number')." = ".$db->quote($order->order_number));
-        $db->setQuery($query);
-        $before_inserted = $db->loadObjectList();
-
-        foreach( $before_inserted as $bi ) {
-            if ($bi->status == 'done') {
-                $session->set( 'komtet_fisc_started', False);
-                return;
+            if (($key = array_search($order->id, $komtet_fisc_now_orders)) !== false) {
+                unset($komtet_fisc_now_orders[$key]);
+                $session->set( 'komtet_fisc_now_orders', $komtet_fisc_now_orders);
             }
+
+            return;
         }
 
         $timeNow = date(DATE_ATOM, time());
-        $order_fics_status = new stdClass();
-        $order_fics_status->order_id = $order->order_id;
-        $order_fics_status->order_number = $order->order_number;
-        $order_fics_status->status='pending';
-        $order_fics_status->event=$eventName;
-        $order_fics_status->datetime=$timeNow;
-        $db->insertObject('#__jshopping_order_fiscalization_status', $order_fics_status);
+        $now_inserted = $this->save_order_fisc_status($order, $eventName, $timeNow);
 
-        $session->set( 'komtet_fisc_started', False);
-
-        $query = $db->getQuery(true);
-        $query->select('*');
-        $query->from($db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
-        $query->where($db->quoteName('status.order_id')." = ".$db->quote($order->order_id));
-        $query->where($db->quoteName('status.event')." = ".$db->quote($eventName));
-        $query->where($db->quoteName('status.datetime')." = ".$db->quote($timeNow));
-        $db->setQuery($query);
-        $now_inserted = $db->loadObject();
-
-        $query = $db->getQuery(true);
-        $query->select('*');
-        $query->from($db->quoteName('#__jshopping_order_item', 'position'));
-        $query->join('INNER', $db->quoteName('#__jshopping_orders', 'order') . ' ON (' . $db->quoteName('order.order_id') . ' = ' . $db->quoteName('position.order_id') . ')');
-        $query->where($db->quoteName('position.order_id')." = ".$db->quote($order->order_id));
-        $db->setQuery($query);
-        $positions = $db->loadObjectList();
+        $positions = $this->get_order_positions($order);
 
         $payment = new Payment(Payment::TYPE_CARD, floatval($positions[0]->order_total));
 
@@ -154,19 +200,15 @@ class komtetHelper
             echo $fiscErr;
         }
 
-        $query = $db->getQuery(true);
-        $query->select('*');
-        $query->from($db->quoteName('#__jshopping_order_fiscalization_status', 'status'));
-        $query->where($db->quoteName('status.id')." = ".$db->quote($now_inserted->id));
-        $db->setQuery($query);
-        $now_inserted = $db->loadObject();
+        $now_inserted = $this->get_inserted_order_fisc_status($now_inserted, $eventName, $timeNow);
 
         if($now_inserted->status != 'error') {
-            $order_fics_status = new stdClass();
-            $order_fics_status->id = $now_inserted->id;
-            $order_fics_status->status='done';
-            $order_fics_status->datetime=date(DATE_ATOM, time());
-            $result = $db->updateObject('#__jshopping_order_fiscalization_status', $order_fics_status, 'id');
+            $this->update_order_fisc_status($now_inserted);
+        }
+
+        if (($key = array_search($order->id, $komtet_fisc_now_orders)) !== false) {
+            unset($komtet_fisc_now_orders[$key]);
+            $session->set( 'komtet_fisc_now_orders', $komtet_fisc_now_orders);
         }
     }
 }

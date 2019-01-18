@@ -7,6 +7,9 @@ class plgSystemKomtetkassa extends JPlugin
 
     protected $autoloadLanguage = true;
 
+    private $order_paid_status = 6;
+    private $order_complete_status = 7;
+
     public function isShouldFiscalize($pm_system_id)
     {
         $pm_methods_ids = explode(',', $this->params['pm_methods']);
@@ -32,7 +35,8 @@ class plgSystemKomtetkassa extends JPlugin
 
     public function fiscalize($order, $params, $eventName)
     {
-        komtetHelper::fiscalize($order, $params, $eventName);
+        $komtetFiscalizer = new komtetHelper();
+        $komtetFiscalizer->fiscalize($order, $params, $eventName);
         return;
     }
 
@@ -47,7 +51,8 @@ class plgSystemKomtetkassa extends JPlugin
 
     public function onKomtetKassaFiscalize(&$order)
     {
-        if ( in_array($order->order_status, array(6,7)) && $this->isShouldFiscalize($order->payment_method_id))
+        if (in_array($order->order_status, array($this->order_paid_status,$this->order_complete_status)) &&
+             $this->isShouldFiscalize($order->payment_method_id))
         {
             $this->fiscalize($order, $this->params, 'onKomtetKassaFiscalize');
         }
@@ -56,7 +61,8 @@ class plgSystemKomtetkassa extends JPlugin
 
     public function onStep7BefereNotify(&$order, &$jshopCheckoutBuy, &$pmconfigs)
     {
-        if (in_array($order->order_status, array(6,7)) && $this->isShouldFiscalize($order->payment_method_id))
+        if (in_array($order->order_status, array($this->order_paid_status,$this->order_complete_status)) &&
+            $this->isShouldFiscalize($order->payment_method_id))
         {
             $this->fiscalize($order, $this->params, 'onStep7BefereNotify');
         }
@@ -64,7 +70,8 @@ class plgSystemKomtetkassa extends JPlugin
     }
 
     public function onAfterChangeOrderStatusAdmin(&$order, &$order_status, &$status_id, &$notify, &$comments, &$include, &$view_order)
-    {       
+    {
+        
         $db = JFactory::getDbo();
         $query = $db->getQuery(true);
         $query->select('*');
@@ -72,8 +79,9 @@ class plgSystemKomtetkassa extends JPlugin
         $query->where($db->quoteName('order.order_id')." = ".$db->quote($order));
         $db->setQuery($query);
         $_order = $db->loadObject();
-
-        if (in_array($order->order_status, array(6,7)) && $this->isShouldFiscalize($_order->payment_method_id))
+        
+        if (in_array($_order->order_status, array($this->order_paid_status,$this->order_complete_status)) &&
+            $this->isShouldFiscalize($_order->payment_method_id))
         {
             $this->fiscalize($_order, $this->params, 'onAfterChangeOrderStatusAdmin');
         }
