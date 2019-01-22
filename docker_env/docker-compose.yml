@@ -10,9 +10,7 @@ services:
       MYSQL_USER: devuser
       MYSQL_PASSWORD: devpass
     volumes:
-      - /srv/docker_volumes/mysql_data/komtet_kassa_joomla3:/var/lib/mysql
-    ports:
-      - "9906:3306"
+      - ./php/mysql:/var/lib/mysql
   web:
     image: ss_web:last
     build: ./
