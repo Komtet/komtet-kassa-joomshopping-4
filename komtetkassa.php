@@ -7,8 +7,8 @@ class plgSystemKomtetkassa extends JPlugin
 
     protected $autoloadLanguage = true;
 
-    private $order_paid_status = 6;
-    private $order_complete_status = 7;
+    constant ORDER_PAID_STATUS = 6;
+    constant ORDER_COMPLETE_STATUS = 7;
 
     public function isShouldFiscalize($pm_system_id)
     {
@@ -51,7 +51,8 @@ class plgSystemKomtetkassa extends JPlugin
 
     public function onKomtetKassaFiscalize(&$order)
     {
-        if (in_array($order->order_status, array($this->order_paid_status,$this->order_complete_status)) &&
+        if (in_array($order->order_status, array(plgSystemKomtetkassa::ORDER_PAID_STATUS,
+                                                 plgSystemKomtetkassa::ORDER_COMPLETE_STATUS)) &&
              $this->isShouldFiscalize($order->payment_method_id))
         {
             $this->fiscalize($order, $this->params, 'onKomtetKassaFiscalize');
@@ -61,7 +62,8 @@ class plgSystemKomtetkassa extends JPlugin
 
     public function onStep7BefereNotify(&$order, &$jshopCheckoutBuy, &$pmconfigs)
     {
-        if (in_array($order->order_status, array($this->order_paid_status,$this->order_complete_status)) &&
+        if (in_array($order->order_status, array(plgSystemKomtetkassa::ORDER_PAID_STATUS,
+                                                 plgSystemKomtetkassa::ORDER_COMPLETE_STATUS)) &&
             $this->isShouldFiscalize($order->payment_method_id))
         {
             $this->fiscalize($order, $this->params, 'onStep7BefereNotify');
@@ -80,7 +82,8 @@ class plgSystemKomtetkassa extends JPlugin
         $db->setQuery($query);
         $_order = $db->loadObject();
         
-        if (in_array($_order->order_status, array($this->order_paid_status,$this->order_complete_status)) &&
+        if (in_array($_order->order_status, array(plgSystemKomtetkassa::ORDER_PAID_STATUS,
+                                                  plgSystemKomtetkassa::ORDER_COMPLETE_STATUS)) &&
             $this->isShouldFiscalize($_order->payment_method_id))
         {
             $this->fiscalize($_order, $this->params, 'onAfterChangeOrderStatusAdmin');
