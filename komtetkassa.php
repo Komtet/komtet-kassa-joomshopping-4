@@ -7,8 +7,8 @@ class plgSystemKomtetkassa extends JPlugin
 
     protected $autoloadLanguage = true;
 
-    constant ORDER_PAID_STATUS = 6;
-    constant ORDER_COMPLETE_STATUS = 7;
+    const ORDER_PAID_STATUS = 6;
+    const ORDER_COMPLETE_STATUS = 7;
 
     public function isShouldFiscalize($pm_system_id)
     {
