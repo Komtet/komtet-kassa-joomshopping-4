@@ -1,2 +1,4 @@
-/docker_env/php/
-/docker_env/mysql
+.DS_Store
+dist
+php
+data

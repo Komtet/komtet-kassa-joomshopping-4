@@ -42,6 +42,11 @@ class Check
     private $shouldPrint = false;
 
     /**
+     * @var bool
+     */
+    private $internet = false;
+
+    /**
      * @var Payment[]
      */
     private $payments = [];
@@ -128,6 +133,18 @@ class Check
     public function setShouldPrint($value)
     {
         $this->shouldPrint = (bool) $value;
+
+        return $this;
+    }
+
+    /**
+     * @param bool $value
+     *
+     * @return Check
+     */
+    public function setInternet($value)
+    {
+        $this->internet = (bool) $value;
 
         return $this;
     }
@@ -250,6 +267,10 @@ class Check
 
         if ($this->cashier !== null) {
             $result['cashier'] = $this->cashier->asArray();
+        }
+
+        if ($this->internet !== null) {
+            $result['internet'] = $this->internet;
         }
 
         return $result;
