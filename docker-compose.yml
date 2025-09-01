@@ -10,7 +10,7 @@ services:
       MYSQL_USER: devuser
       MYSQL_PASSWORD: devpass
     volumes:
-      - ./mysql:/var/lib/mysql
+      - ./data/mysql:/var/lib/mysql
   web:
     image: ss_web:last
     build: ./

@@ -89,8 +89,6 @@ class komtetHelper
 
         $komtet_fisc_now_orders = $session->get('komtet_fisc_now_orders', array());
 
-        if (in_array($order->id, $komtet_fisc_now_orders)) return;
-
         $komtet_fisc_now_orders[] = $order->id;
         $session->set( 'komtet_fisc_now_orders', $komtet_fisc_now_orders);
 
@@ -132,9 +130,6 @@ class komtetHelper
             case 'usn_dohod_rashod':
                 $parsed_sno = 2;
                 break;
-            case 'envd':
-                $parsed_sno = 3;
-                break;
             case 'esn':
                 $parsed_sno = 4;
                 break;
@@ -147,11 +142,13 @@ class komtetHelper
 
         $check = new Check($order->order_id, $order->email, Check::INTENT_SELL, intval($parsed_sno));
         $check->setShouldPrint($params['is_print_check']);
+
+        if ($params['is_internet']) {
+            $check->setInternet(true);
+        }
+
         $check->addPayment($payment);
 
-        if ($params['vat'] == 'zero' || !$params['vat'] ) {
-            $params['vat'] = 0;
-        }
         $vat = new Vat($params['vat']);
 
         foreach( $positions as $position )
