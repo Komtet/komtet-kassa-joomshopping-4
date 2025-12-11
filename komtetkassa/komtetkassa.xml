@@ -76,6 +76,7 @@
 					<option value="7">7%</option>
 					<option value="10">10%</option>
 					<option value="20">20%</option>
+					<option value="22">22%</option>
 				</field>
 
 				<field name="pm_methods" type="text"
