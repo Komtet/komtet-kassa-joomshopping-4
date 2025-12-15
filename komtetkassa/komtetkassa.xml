@@ -3,7 +3,7 @@
 	<name>Joomshopping KOMTET Kassa</name>
 	<author>Komtet</author>
 	<authorUrl>kassa.komtet.ru</authorUrl>
-	<version>1.4.0</version>
+	<version>1.5.0</version>
 	<description>Fiscalization plugin for KOMTET Kassa</description>
 
 	<files>
